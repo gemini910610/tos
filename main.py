@@ -28,6 +28,7 @@ class Board:
     def __init__(self, runestones: list[list[int]] = None):
         if runestones is None:
             self.__runestones = []
+            """版面符石"""
             for _ in range(5):
                 row = []
                 for _ in range(6):
@@ -145,14 +146,28 @@ class Board:
                         os.system('pause')
         return combo
     
-    def show(self, title: str = 'Tower of Saviors', hand_on: tuple[int, int] = None):
+    def fall(self):
+        """
+        符石下落
+        """
+        for i in range(6):
+            empty = 0
+            for j in range(4, -1, -1):
+                if self.__runestones[j][i] == -1:
+                    empty += 1
+                else:
+                    self.__swap((i, j), (i, j + empty))
+    
+    def show(self, title: str = 'Tower of Saviors', hand_on: tuple[int, int] = None, clear: bool = True):
         """
         顯示版面\n
         [參數]
         title: 標題
         hand_on: 移動中手持符石座標
+        clear: 是否清除畫面
         """
-        os.system('cls')
+        if clear:
+            os.system('cls')
         print(title)
         for i in range(5):
             for j in range(6):
@@ -195,3 +210,5 @@ while True:
 combo = board.dissolve()
 board.show(f'combo: {combo}')
 os.system('pause')
+board.fall()
+board.show(clear=False)
