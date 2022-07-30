@@ -21,6 +21,11 @@ class DissolvedRunestone:
             sum += runestone[1] * self.__weights[runestone[0]]
         return sum
     
+    @property
+    def combo(self) -> int:
+        """連擊數"""
+        return len(self.__runestones)
+    
     def add(self, runestone_type: int, amount: int):
         """
         將符石加入陣列\n
@@ -159,16 +164,15 @@ class Board:
             return True
         return False
     
-    def __dissolve(self, combo: int, dissolved_runestone: DissolvedRunestone) -> int:
+    def __dissolve(self, dissolved_runestone: DissolvedRunestone) -> bool:
         """
         消除符石\n
         [參數]
-        combo: 現有連擊數
         dissolved_runestone: 消除的符石
         [回傳]\n
-        連擊數
+        是否有符石被消除
         """
-        second_combo = 0
+        dissolve = False
         for i in range(5):
             for j in range(6):
                 if self.__runestones[i][j] != -1:
@@ -179,33 +183,30 @@ class Board:
                         if self.__can_dissolve(runestone, adjacent):
                             can_dissolve.append(runestone)
                     if len(can_dissolve) > 0:
-                        second_combo += 1
+                        dissolve = True
                         dissolved_runestone.add(self.__runestones[i][j], len(can_dissolve))
                         for runestone in can_dissolve:
                             self.__runestones[runestone[0]][runestone[1]] = -1
-                        self.show(f'dissolving... combo: {combo + second_combo}')
+                        self.show(f'dissolving... combo: {dissolved_runestone.combo}')
                         os.system('pause')
-        return second_combo
+        return dissolve
 
-    def dissolve(self) -> tuple[int, DissolvedRunestone]:
+    def dissolve(self) -> DissolvedRunestone:
         """
         消除符石並下落\n
         [回傳]\n
-        (連擊數, 消除的符石)
+        消除的符石
         """
-        combo = 0
         dissolved_runestone = DissolvedRunestone(self.__weight)
         while True:
-            second_combo = self.__dissolve(combo, dissolved_runestone)
-            if second_combo == 0:
+            if not self.__dissolve(dissolved_runestone):
                 break
-            combo += second_combo
             if self.__fall():
-                self.show(f'dissolving... combo: {combo}')
+                self.show(f'dissolving... combo: {dissolved_runestone.combo}')
                 os.system('pause')
             else:
                 break
-        return (combo, dissolved_runestone)
+        return dissolved_runestone
     
     def __fall(self) -> bool:
         """
@@ -275,7 +276,7 @@ while True:
     if operation == '':
         break
     start = board.move(start, [operation])
-combo, dissolved_runestone = board.dissolve()
-board.show(f'combo: {combo}')
+dissolved_runestone = board.dissolve()
+board.show(f'combo: {dissolved_runestone.combo}')
 dissolved_runestone.show()
 print(f'score: {dissolved_runestone.score}')
