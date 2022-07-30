@@ -82,7 +82,7 @@ class Board:
             hand_on = next
         return tuple(hand_on)
     
-    def __dissolve(self, runestone: tuple[int, int], target: int, adjacent: list[tuple[int, int]]):
+    def __adjacent(self, runestone: tuple[int, int], target: int, adjacent: list[tuple[int, int]]):
         """
         將相鄰的符石加入陣列\n
         [參數]
@@ -91,12 +91,12 @@ class Board:
         adjacent: 要加入的陣列
         """
         x, y = runestone
-        if x < 5 and y >= 0 and y < 6 and y >= 0 and self.__runestones[x][y] == target and (x, y) not in adjacent:
+        if x < 5 and x >= 0 and y < 6 and y >= 0 and self.__runestones[x][y] == target and (x, y) not in adjacent:
             adjacent.append((x, y))
-            self.__dissolve((x + 1, y), target, adjacent)
-            self.__dissolve((x - 1, y), target, adjacent)
-            self.__dissolve((x, y + 1), target, adjacent)
-            self.__dissolve((x, y - 1), target, adjacent)
+            self.__adjacent((x + 1, y), target, adjacent)
+            self.__adjacent((x - 1, y), target, adjacent)
+            self.__adjacent((x, y + 1), target, adjacent)
+            self.__adjacent((x, y - 1), target, adjacent)
     
     def __can_dissolve(self, runestone: tuple[int, int], adjacent: list[tuple[int, int]]) -> bool: 
         """
@@ -121,42 +121,69 @@ class Board:
         if y - 2 >= 0 and (x, y - 1) in adjacent and (x, y - 2) in adjacent:
             return True
         return False
-
-    def dissolve(self) -> int:
+    
+    def __dissolve(self, combo: int) -> int:
         """
         消除符石\n
+        [參數]
+        combo: 現有連擊數
         [回傳]\n
         連擊數
         """
-        combo = 0
+        second_combo = 0
         for i in range(5):
             for j in range(6):
                 if self.__runestones[i][j] != -1:
                     adjacent = [] # 相鄰
-                    self.__dissolve((i, j), self.__runestones[i][j], adjacent)
+                    self.__adjacent((i, j), self.__runestones[i][j], adjacent)
                     can_dissolve = [] # 可消除
                     for runestone in adjacent:
                         if self.__can_dissolve(runestone, adjacent):
                             can_dissolve.append(runestone)
                     if len(can_dissolve) > 0:
-                        combo += 1
+                        second_combo += 1
                         for runestone in can_dissolve:
                             self.__runestones[runestone[0]][runestone[1]] = -1
-                        self.show(f'dissolving... combo: {combo}')
+                        self.show(f'dissolving... combo: {combo + second_combo}')
                         os.system('pause')
+        return second_combo
+
+    def dissolve(self) -> int:
+        """
+        消除符石並下落\n
+        [回傳]\n
+        連擊數
+        """
+        combo = 0
+        while True:
+            second_combo = self.__dissolve(combo)
+            if second_combo == 0:
+                break
+            combo += second_combo
+            if self.__fall():
+                self.show(f'dissolving... combo: {combo}')
+                os.system('pause')
+            else:
+                break
         return combo
     
-    def fall(self):
+    def __fall(self) -> bool:
         """
-        符石下落
+        符石下落\n
+        [回傳]\n
+        是否有符石下落
         """
+        fall = False
         for i in range(6):
             empty = 0
             for j in range(4, -1, -1):
                 if self.__runestones[j][i] == -1:
                     empty += 1
                 else:
+                    if empty > 0:
+                        fall = True
                     self.__swap((i, j), (i, j + empty))
+        return fall
     
     def show(self, title: str = 'Tower of Saviors', hand_on: tuple[int, int] = None, clear: bool = True):
         """
@@ -184,7 +211,8 @@ def keyboard_input() -> str:
     [回傳]\n
     方向(r: 右, u: 上, l: 左, d: 下)
     """
-    if getch() == b'\x00':
+    key = getch()
+    if key == b'\x00' or key == b'\xe0':
         match getch():
             case b'M':
                 return 'r'
@@ -209,6 +237,3 @@ while True:
     start = board.move(start, [operation])
 combo = board.dissolve()
 board.show(f'combo: {combo}')
-os.system('pause')
-board.fall()
-board.show(clear=False)
