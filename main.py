@@ -2,6 +2,41 @@ import random
 from msvcrt import getch
 import os
 
+class DissolvedRunestone:
+    """消除的符石"""
+    def __init__(self, weights: list[int] = [1, 1, 1, 1, 1, 1]):
+        self.__runestones = []
+        self.__weights = weights
+    
+    @property
+    def runestones(self) -> list[tuple[int, int]]:
+        """消除的符石"""
+        return self.__runestones
+    
+    @property
+    def score(self) -> int:
+        """消除評分"""
+        sum = 0
+        for runestone in self.__runestones:
+            sum += runestone[1] * self.__weights[runestone[0]]
+        return sum
+    
+    def add(self, runestone_type: int, amount: int):
+        """
+        將符石加入陣列\n
+        [參數]
+        runestone_type: 符石種類
+        amount: 數量
+        """
+        self.__runestones.append((runestone_type, amount))
+    
+    def show(self):
+        """顯示消除的符石"""
+        color = ['\033[47m', '\033[44m', '\033[41m', '\033[42m', '\033[43m', '\033[45m']
+        for runestone in self.__runestones:
+            print(f'{color[runestone[0]]} {runestone[1]} \033[0m', end=' ')
+        print()
+
 class Board:
     """版面"""
     __runestone_type = [
@@ -25,7 +60,7 @@ class Board:
     ]
     """手持符石字串"""
 
-    def __init__(self, runestones: list[list[int]] = None):
+    def __init__(self, runestones: list[list[int]] = None, weight: list[int] = [1, 1, 1, 1, 1, 1]):
         if runestones is None:
             self.__runestones = []
             """版面符石"""
@@ -36,13 +71,15 @@ class Board:
                 self.__runestones.append(row)
         else:
             self.__runestones = runestones
+        self.__weight = weight
+        """符石權重"""
     
     def copy(self):
         """複製版面"""
         runestones = []
         for i in range(5):
             runestones.append(self.__runestones[i].copy())
-        return Board(runestones)
+        return Board(runestones, self.__weight.copy())
     
     def __swap(self, runestone1: tuple[int, int], runestone2: tuple[int, int]):
         """
@@ -122,11 +159,12 @@ class Board:
             return True
         return False
     
-    def __dissolve(self, combo: int) -> int:
+    def __dissolve(self, combo: int, dissolved_runestone: DissolvedRunestone) -> int:
         """
         消除符石\n
         [參數]
         combo: 現有連擊數
+        dissolved_runestone: 消除的符石
         [回傳]\n
         連擊數
         """
@@ -142,21 +180,23 @@ class Board:
                             can_dissolve.append(runestone)
                     if len(can_dissolve) > 0:
                         second_combo += 1
+                        dissolved_runestone.add(self.__runestones[i][j], len(can_dissolve))
                         for runestone in can_dissolve:
                             self.__runestones[runestone[0]][runestone[1]] = -1
                         self.show(f'dissolving... combo: {combo + second_combo}')
                         os.system('pause')
         return second_combo
 
-    def dissolve(self) -> int:
+    def dissolve(self) -> tuple[int, DissolvedRunestone]:
         """
         消除符石並下落\n
         [回傳]\n
-        連擊數
+        (連擊數, 消除的符石)
         """
         combo = 0
+        dissolved_runestone = DissolvedRunestone(self.__weight)
         while True:
-            second_combo = self.__dissolve(combo)
+            second_combo = self.__dissolve(combo, dissolved_runestone)
             if second_combo == 0:
                 break
             combo += second_combo
@@ -165,7 +205,7 @@ class Board:
                 os.system('pause')
             else:
                 break
-        return combo
+        return (combo, dissolved_runestone)
     
     def __fall(self) -> bool:
         """
@@ -235,5 +275,7 @@ while True:
     if operation == '':
         break
     start = board.move(start, [operation])
-combo = board.dissolve()
+combo, dissolved_runestone = board.dissolve()
 board.show(f'combo: {combo}')
+dissolved_runestone.show()
+print(f'score: {dissolved_runestone.score}')
